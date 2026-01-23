@@ -109,13 +109,13 @@ int GetPackedArguments(int argc, const char* argv[], const char* bof_args_def, s
     for (const auto& arg : args) {
         switch(arg_format[idx]){
         case 'Z':
-            if(!std::filesystem::exists(arg))
+            if(!std::filesystem::is_regular_file(arg))
                 WriteString(packed_args, converter.from_bytes(std::string(arg)));
             else
                 WriteString(packed_args, converter.from_bytes(ReadFileAsString(arg.data())));
             break;
         case 'z':
-            if(!std::filesystem::exists(arg))
+            if(!std::filesystem::is_regular_file(arg))
                 WriteString(packed_args, arg);
             else{
                 WriteString(packed_args, ReadFileAsString(arg.data()));
