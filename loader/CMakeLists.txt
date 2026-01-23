@@ -1,5 +1,5 @@
 
-add_executable(loader main.cpp ../common/standalone.cpp ../common/standalone.h)
+add_executable(loader main.cpp mappedmodule.cpp mappedmodule.h ../common/standalone.cpp ../common/standalone.h)
 target_compile_features(loader PRIVATE cxx_std_20)
 target_include_directories(loader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

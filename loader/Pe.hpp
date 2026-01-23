@@ -7,6 +7,7 @@
 #endif
 
 #include <cstdint>
+#include <iterator>
 
 namespace Pe
 {
@@ -429,12 +430,21 @@ public:
     using ImgDataDir = typename GenericTypes::ImgDataDir;
 
 private:
-    const void* const m_base;
-    const ImgType m_type;
+    const void* m_base;
+    ImgType m_type;
 
 public:
     Pe(const ImgType type, const void* const base) noexcept : m_base(base), m_type(type)
     {
+    }
+
+    Pe& operator=(Pe&& other) noexcept {
+        if (this != &other) {
+            this->m_base = other.m_base;
+            this->m_type = other.m_type;
+            other.m_base = nullptr;
+        }
+        return *this;
     }
 
     static Pe fromFile(const void* const buffer) noexcept
