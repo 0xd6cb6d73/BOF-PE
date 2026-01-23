@@ -181,7 +181,7 @@ static const PVOID GetExceptionTables(const Pe::PeNative& mappedPe, ULONG& size)
 
     if (loadConfigDir->VirtualAddress && loadConfigDir->Size && loadConfig->SEHandlerCount && loadConfig->SEHandlerTable) {
         result = PVOID(loadConfig->SEHandlerTable);
-        size = loadConfig->SEHandlerCount;             
+        size = sizeof(IMAGE_RUNTIME_FUNCTION_ENTRY) * loadConfig->SEHandlerCount;
     }
     else {
         result = nullptr;
