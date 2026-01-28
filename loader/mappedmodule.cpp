@@ -1,9 +1,11 @@
 
+#include <memory>
 #include <windows.h>
 #include <vector>
 #include <string>
 #include <fstream>
 #include <format>
+#include <winnt.h>
 
 #include "mappedmodule.h"
 
@@ -134,26 +136,10 @@ static void ProcessRelocations(const Pe::PeNative& pe, uintptr_t delta) {
 
 static void UpdateSectionPermissions(const Pe::PeNative& pe) {
 
-    for (const auto& section : pe.sections()) {
-
-        auto pagePermissions = PAGE_READONLY;
-        auto oldPermissions = 1ul;
-        
-        if (section.Characteristics & IMAGE_SCN_CNT_CODE || section.Characteristics & IMAGE_SCN_MEM_EXECUTE) {            
-            if (section.Characteristics & IMAGE_SCN_MEM_WRITE) {
-                pagePermissions = PAGE_EXECUTE_WRITECOPY;
-            }
-            else {
-                pagePermissions = PAGE_EXECUTE_READ;
-            }
-        }
-        else if (section.Characteristics & IMAGE_SCN_MEM_WRITE) {
-            pagePermissions = PAGE_READWRITE;
-        }
-
-        if(pagePermissions != PAGE_READWRITE)
-            VirtualProtect(LPVOID(pe.byRva<void>(section.VirtualAddress)), section.SizeOfRawData, pagePermissions, &oldPermissions);
-    }
+    DWORD old=0;
+    // found some weird crashes in TLS callbacks when applying proper per-section protection to the unique_ptr-managed allocation.
+    // They were referring to non-existant stack regions
+    VirtualProtect(PVOID(pe.imageBase()), pe.imageSize(), PAGE_EXECUTE_READWRITE, &old);
 }
 
 static const Pe::GenericTypes::SecHeader* FindSection(const std::string& name, const Pe::PeNative& mappedPe) {
@@ -401,13 +387,8 @@ MappedModule::MappedModule(Logger logger, const std::vector<std::byte>& peBytes)
         throw std::runtime_error("PE file is not valid");
     }
 
-    //We try to allocate at the preferred base, this will save relocation later
-    _mappedImage = VirtualAlloc((LPVOID)(pe.headers().opt()->ImageBase), pe.imageSize(), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
-    //Preferred base was not available, so just allocate at any available address
-    if (_mappedImage == nullptr) {
-        _mappedImage = VirtualAlloc(nullptr, pe.imageSize(), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-    }
+    _alloc = std::make_unique<std::vector<std::byte>>(pe.imageSize());
+    _mappedImage = _alloc->data();
 
     _logger("Allocated image @ 0x%p\n", _mappedImage);
 
@@ -482,7 +463,6 @@ MappedModule::~MappedModule() {
     }
 
     RemoveExceptionSupport(_mappedPe);
-    VirtualFree(_mappedImage, 0, MEM_RELEASE);
 }
 
 FARPROC MappedModule::GetProcAddress(const char* name) const {

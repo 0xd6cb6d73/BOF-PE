@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pe.hpp"
+#include <memory>
 #include <string>
 #include <vector>
 #include <functional>
@@ -21,6 +22,7 @@ private:
 	LPVOID _mappedImage;
 	bool _loaded;
 	Logger _logger;
+  std::unique_ptr<std::vector<std::byte>> _alloc;
 
 public:
 	MappedModule(Logger logger, const std::vector<std::byte>& peBytes);
