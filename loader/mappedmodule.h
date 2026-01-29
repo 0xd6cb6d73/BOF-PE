@@ -24,7 +24,7 @@ private:
 	bool _loaded;
 	Logger _logger;
   	std::unique_ptr<std::vector<std::byte>> _alloc;
-	std::atomic<int32_t> _refs;
+	std::atomic<int32_t> _refs = 1;
 
 public:
 	MappedModule(Logger logger, const std::vector<std::byte>& peBytes);
