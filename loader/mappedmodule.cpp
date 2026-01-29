@@ -134,14 +134,6 @@ static void ProcessRelocations(const Pe::PeNative& pe, uintptr_t delta) {
     }
 }
 
-static void UpdateSectionPermissions(const Pe::PeNative& pe) {
-
-    DWORD old=0;
-    // found some weird crashes in TLS callbacks when applying proper per-section protection to the unique_ptr-managed allocation.
-    // They were referring to non-existant stack regions
-    VirtualProtect(PVOID(pe.imageBase()), pe.imageSize(), PAGE_EXECUTE_READWRITE, &old);
-}
-
 static const Pe::GenericTypes::SecHeader* FindSection(const std::string& name, const Pe::PeNative& mappedPe) {
 
     for (auto& sec : mappedPe.sections()) {
@@ -434,7 +426,10 @@ MappedModule::MappedModule(Logger logger, const std::vector<std::byte>& peBytes)
 
         //Update the section permissions to expected values,
         //for example RX for the .text section
-        UpdateSectionPermissions(_mappedPe);
+        DWORD old=0;
+        // found some weird crashes in TLS callbacks when applying proper per-section protection to the unique_ptr-managed allocation.
+        // They were referring to non-existant stack regions
+        VirtualProtect(PVOID(pe.imageBase()), pe.imageSize(), PAGE_EXECUTE_READWRITE, &old);
         _logger("Set section permissions\n");
 
         AddExceptionSupport(_mappedPe);
