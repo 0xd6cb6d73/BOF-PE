@@ -450,14 +450,24 @@ MappedModule::MappedModule(Logger logger, const std::vector<std::byte>& peBytes)
     }
 }
 
-MappedModule::~MappedModule() {
- 
-    if (_mappedPe.headers().nt()->FileHeader.Characteristics & IMAGE_FILE_DLL) {
-        auto dllmain = dllmain_ptr(uintptr_t(_mappedPe.base()) + _mappedPe.headers().opt()->AddressOfEntryPoint);
-        dllmain(HINSTANCE(_mappedPe.base()), DLL_PROCESS_DETACH, 0);
-    }
+MappedModule::MappedModule(MappedModule&& other) noexcept  : 
+    _mappedPe(std::move(other._mappedPe)),
+    _mappedImage(other._mappedImage),
+    _loaded(other._loaded),
+    _logger(other._logger),
+    _alloc(std::move(other._alloc)),
+    _refs(other._refs.fetch_add(1)){}
 
-    RemoveExceptionSupport(_mappedPe);
+MappedModule::~MappedModule() {
+
+    if(_refs.fetch_sub(1) == 1) {
+        if (_mappedPe.headers().nt()->FileHeader.Characteristics & IMAGE_FILE_DLL) {
+            auto dllmain = dllmain_ptr(uintptr_t(_mappedPe.base()) + _mappedPe.headers().opt()->AddressOfEntryPoint);
+            dllmain(HINSTANCE(_mappedPe.base()), DLL_PROCESS_DETACH, 0);
+        }
+
+        RemoveExceptionSupport(_mappedPe);
+    }
 }
 
 FARPROC MappedModule::GetProcAddress(const char* name) const {

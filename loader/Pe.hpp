@@ -447,6 +447,10 @@ public:
         return *this;
     }
 
+    Pe(Pe&& other) noexcept : m_base(other.m_base), m_type(other.m_type) {
+      other.m_base = nullptr;
+    }
+
     static Pe fromFile(const void* const buffer) noexcept
     {
         return Pe(ImgType::file, buffer);
